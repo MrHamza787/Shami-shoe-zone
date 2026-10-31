@@ -73,7 +73,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/Password provider is not enabled in Firebase Console yet. Please click "Continue with Google" above (already enabled), or enable Email/Password in Firebase Console → Authentication → Sign-in method.');
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
         setError('Incorrect email or password. Please verify your details.');
       } else if (err.code === 'auth/email-already-in-use') {
         setError('An account with this email already exists. Please sign in instead.');
@@ -120,7 +122,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onSuccess?.();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Phone verification failed');
+      if (err?.code === 'auth/operation-not-allowed') {
+        setError('Email/Password provider is disabled in Firebase Console. Please use "Continue with Google" above (ready to use), or enable Email/Password in Firebase Console.');
+      } else {
+        setError(err.message || 'Phone verification failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -134,7 +140,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onSuccess?.();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed demo login');
+      if (err?.code === 'auth/operation-not-allowed') {
+        setError('Email/Password provider is not enabled in Firebase Console yet. Please click "Continue with Google" above to sign in instantly!');
+      } else {
+        setError(err.message || 'Failed demo login');
+      }
     } finally {
       setLoading(false);
     }
