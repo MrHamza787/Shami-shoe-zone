@@ -1,0 +1,164 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Customer account details and delivery profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "area": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Footwear product in Shami Shoe Zone catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameUrdu": { "type": "string" },
+        "description": { "type": "string" },
+        "descriptionUrdu": { "type": "string" },
+        "originalPrice": { "type": "number" },
+        "discountedPrice": { "type": "number" },
+        "category": { "type": "string" },
+        "images": { "type": "array" },
+        "sizes": { "type": "array" },
+        "colors": { "type": "array" },
+        "inStock": { "type": "boolean" },
+        "stockQuantity": { "type": "number" },
+        "featured": { "type": "boolean" },
+        "isNewArrival": { "type": "boolean" },
+        "isBestSeller": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "discountedPrice", "category", "inStock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details for WhatsApp fulfillment and delivery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "area": { "type": "string" },
+        "city": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "deliveryCharges": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string" },
+        "whatsappStatus": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["orderNumber", "customerName", "phone", "address", "totalAmount", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Footwear category classification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameUrdu": { "type": "string" },
+        "slug": { "type": "string" },
+        "image": { "type": "string" },
+        "itemCount": { "type": "number" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Store operational settings and admin config",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "storeAddress": { "type": "string" },
+        "storeAddressUrdu": { "type": "string" },
+        "deliveryArea": { "type": "string" },
+        "deliveryCharges": { "type": "number" },
+        "freeDeliveryThreshold": { "type": "number" },
+        "minOrderAmount": { "type": "number" },
+        "announcement": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["storeName", "whatsappNumber", "deliveryCharges"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer feedback and testimonials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "productName": { "type": "string" },
+        "location": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["customerName", "rating", "comment"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Store administrator authorization record",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "addedAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and customer accounts"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Footwear catalog products"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders with items and delivery info"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Catalog categories"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Store operational settings and WhatsApp contact info"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Verified customer reviews and testimonials"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Store administrators"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Shami Shoe Zone - Premium Footwear Abbottabad",
+  "description": "Premium footwear store in Abbottabad, Pakistan offering Men's, Women's, and Kids' shoes with convenient WhatsApp ordering and home delivery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
