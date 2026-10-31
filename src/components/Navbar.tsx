@@ -299,6 +299,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             ))}
+
+            {/* Admin Panel Tab - Highlighted when logged in as awan11118@gmail.com */}
+            {user?.email?.toLowerCase() === 'awan11118@gmail.com' ? (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`font-bold tracking-wide transition-all whitespace-nowrap py-1 px-3 rounded-lg flex items-center gap-1.5 shadow-xs ${
+                  activeTab === 'admin'
+                    ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/30'
+                    : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-700" />
+                <span>🛡️ Admin Panel</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className="text-neutral-400 hover:text-neutral-600 text-[11px] font-medium transition-colors"
+                title="Store Owner Portal"
+              >
+                Admin
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-neutral-500">

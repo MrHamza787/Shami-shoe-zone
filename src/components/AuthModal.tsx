@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Phone, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, AlertCircle, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -20,7 +20,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     signInWithGoogle, 
     signInWithEmail, 
     signUpWithEmail, 
-    signInWithDemoCustomer 
+    signInWithDemoCustomer,
+    signInAsAdminAwan
   } = useAuth();
   const { isUrdu } = useLanguage();
 
@@ -419,8 +420,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </form>
           )}
 
-          {/* Quick Demo Customer Button */}
-          <div className="pt-3 border-t border-neutral-100">
+          {/* Quick Demo & Admin Buttons */}
+          <div className="pt-3 border-t border-neutral-100 space-y-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  await signInAsAdminAwan();
+                  onSuccess?.();
+                  onClose();
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <Shield className="w-3.5 h-3.5 text-amber-600" />
+              <span>⚡ Store Owner Login (awan11118@gmail.com)</span>
+            </button>
+
             <button
               type="button"
               onClick={handleDemoCustomerLogin}

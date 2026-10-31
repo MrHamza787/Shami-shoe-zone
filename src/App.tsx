@@ -43,6 +43,9 @@ function MainApp() {
   // Load catalog and settings from Firestore
   const loadData = async () => {
     try {
+      // Auto-seed initial catalog in background if database is empty ("Kud sa kro sab")
+      seedInitialProductsIfEmpty().catch(() => {});
+
       const [fetchedProducts, fetchedSettings, fetchedReviews] = await Promise.all([
         fetchProducts(),
         fetchStoreSettings(),

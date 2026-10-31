@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Compass, ShoppingBag, Package, User } from 'lucide-react';
+import { Home, Compass, ShoppingBag, Package, User, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -18,10 +18,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   const { totalItems, setIsCartDrawerOpen } = useCart();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const isAwanAdmin = user?.email?.toLowerCase() === 'awan11118@gmail.com';
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-3 py-2 shadow-lg">
-      <div className="grid grid-cols-5 gap-1">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 shadow-lg">
+      <div className={`grid ${isAwanAdmin ? 'grid-cols-6' : 'grid-cols-5'} gap-1`}>
         
         {/* Home */}
         <button
@@ -84,6 +85,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             {user ? 'Profile' : t('login')}
           </span>
         </button>
+
+        {/* Admin Dashboard on Mobile when logged in as awan11118@gmail.com */}
+        {isAwanAdmin && (
+          <button
+            onClick={() => setActiveTab('admin')}
+            className={`flex flex-col items-center justify-center py-1 rounded-lg transition-colors ${
+              activeTab === 'admin' ? 'text-amber-600 font-bold bg-amber-50' : 'text-amber-700 hover:text-amber-900'
+            }`}
+          >
+            <Shield className="w-5 h-5 mb-0.5 text-amber-600" />
+            <span className="text-[10px] leading-tight font-bold">Admin</span>
+          </button>
+        )}
 
       </div>
     </nav>

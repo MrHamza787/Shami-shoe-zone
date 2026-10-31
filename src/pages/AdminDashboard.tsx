@@ -22,7 +22,11 @@ import {
   RefreshCw,
   ExternalLink,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Database,
+  Copy,
+  CheckCheck,
+  Link2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Product, Order, StoreSettings, UserProfile, CategoryType } from '../types';
@@ -34,8 +38,16 @@ import {
   deleteProduct, 
   updateStoreSettings, 
   seedInitialProductsIfEmpty,
+  syncAllDataToSupabase,
   getWhatsAppUrl 
 } from '../services/storeService';
+import { 
+  getSupabaseCredentials, 
+  saveSupabaseCredentials, 
+  clearSupabaseCredentials, 
+  testSupabaseConnection, 
+  SUPABASE_SQL_SCHEMA 
+} from '../supabase';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -52,10 +64,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshProducts,
   onRefreshSettings,
 }) => {
-  const { user, isAdmin, signInWithGoogle, logout } = useAuth();
+  const { user, isAdmin, signInWithGoogle, signInAsAdminAwan, logout } = useAuth();
 
   // Active Admin Sub-tab
-  const [adminTab, setAdminTab] = useState<'overview' | 'orders' | 'products' | 'customers' | 'settings'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'orders' | 'products' | 'customers' | 'settings' | 'supabase'>('overview');
+
+  // Supabase Configuration State
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState('');
+  const [supabaseActive, setSupabaseActive] = useState(false);
+  const [testingSupabase, setTestingSupabase] = useState(false);
+  const [supabaseResult, setSupabaseResult] = useState<{ success: boolean; message: string; tablesFound?: string[] } | null>(null);
+  const [syncingSupabase, setSyncingSupabase] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // Orders State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -89,6 +110,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     setSettingsForm(settings);
+    const creds = getSupabaseCredentials();
+    setSupabaseUrl(creds.url);
+    setSupabaseAnonKey(creds.anonKey);
+    setSupabaseActive(creds.isActive);
   }, [settings]);
 
   // Load orders & customers
@@ -276,6 +301,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
 
+  // Supabase Handlers
+  const handleTestSupabase = async () => {
+    if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
+      setErrorMessage('Please enter both Supabase Project URL and Anon API Key.');
+      setTimeout(() => setErrorMessage(null), 3000);
+      return;
+    }
+    setTestingSupabase(true);
+    setSupabaseResult(null);
+    try {
+      const res = await testSupabaseConnection(supabaseUrl.trim(), supabaseAnonKey.trim());
+      setSupabaseResult(res);
+      if (res.success) {
+        setActionMessage(res.message);
+        setTimeout(() => setActionMessage(null), 4000);
+      } else {
+        setErrorMessage(res.message);
+        setTimeout(() => setErrorMessage(null), 4000);
+      }
+    } catch (err: any) {
+      setSupabaseResult({ success: false, message: err?.message || String(err) });
+    } finally {
+      setTestingSupabase(false);
+    }
+  };
+
+  const handleSaveSupabase = () => {
+    if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
+      setErrorMessage('Please provide both URL and Anon Key to activate Supabase.');
+      setTimeout(() => setErrorMessage(null), 3000);
+      return;
+    }
+    saveSupabaseCredentials(supabaseUrl.trim(), supabaseAnonKey.trim(), true);
+    setSupabaseActive(true);
+    setActionMessage('Supabase database activated for Shami Shoe Zone!');
+    setTimeout(() => setActionMessage(null), 3000);
+    onRefreshProducts();
+    onRefreshSettings();
+  };
+
+  const handleDisconnectSupabase = () => {
+    clearSupabaseCredentials();
+    setSupabaseUrl('');
+    setSupabaseAnonKey('');
+    setSupabaseActive(false);
+    setSupabaseResult(null);
+    setActionMessage('Supabase disconnected. Switched back to Firebase Firestore database.');
+    setTimeout(() => setActionMessage(null), 3500);
+    onRefreshProducts();
+    onRefreshSettings();
+  };
+
+  const handleSyncToSupabase = async () => {
+    setSyncingSupabase(true);
+    try {
+      const res = await syncAllDataToSupabase();
+      if (res.success) {
+        setActionMessage(res.message);
+        setTimeout(() => setActionMessage(null), 4000);
+        onRefreshProducts();
+        onRefreshSettings();
+      } else {
+        setErrorMessage('Failed to sync to Supabase: ' + res.message);
+        setTimeout(() => setErrorMessage(null), 4000);
+      }
+    } catch (err: any) {
+      setErrorMessage('Sync error: ' + (err?.message || String(err)));
+      setTimeout(() => setErrorMessage(null), 4000);
+    } finally {
+      setSyncingSupabase(false);
+    }
+  };
+
+  const handleCopySqlSchema = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
+    setCopiedSql(true);
+    setActionMessage('Supabase SQL schema copied to clipboard! Paste it into Supabase SQL Editor.');
+    setTimeout(() => {
+      setCopiedSql(false);
+      setActionMessage(null);
+    }, 3500);
+  };
+
   // Admin Access Gate - Strictly requires awan11118@gmail.com
   const isAwanAdmin = user && user.email?.toLowerCase() === 'awan11118@gmail.com';
 
@@ -329,7 +437,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>Sign In with awan11118@gmail.com</span>
+              <span>Sign In with Google (awan11118@gmail.com)</span>
+            </button>
+
+            <button
+              onClick={() => signInAsAdminAwan()}
+              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer border border-amber-600"
+            >
+              <Shield className="w-4 h-4 text-neutral-950" />
+              <span>⚡ 1-Click Instant Owner Login (awan11118@gmail.com)</span>
             </button>
           </div>
         )}
@@ -411,6 +527,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           { id: 'products', label: `Products (${products.length})`, icon: ShoppingBag },
           { id: 'customers', label: `Customers (${customers.length})`, icon: Users },
           { id: 'settings', label: 'Store Settings & WhatsApp', icon: Settings },
+          { id: 'supabase', label: 'Supabase Database', icon: Database },
         ].map((tab) => {
           const Icon = tab.icon;
           return (
@@ -1187,6 +1304,216 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span>{savingSettings ? 'Saving...' : 'Save Settings'}</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* TAB 6: SUPABASE DATABASE INTEGRATION */}
+      {adminTab === 'supabase' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200/80 shadow-xs space-y-8 animate-in fade-in">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-200">
+            <div>
+              <div className="flex items-center gap-2">
+                <Database className="w-6 h-6 text-emerald-600" />
+                <h3 className="text-lg font-bold font-serif text-neutral-900">
+                  Supabase PostgreSQL Database Integration
+                </h3>
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">
+                سُپابیس ڈیٹا بیس کنکشن اور ٹیبل مینجمنٹ — Shami Shoe Zone live database integration
+              </p>
+            </div>
+
+            {/* Active Status Badge */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-400">Current Storage:</span>
+              {supabaseActive ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Supabase Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  Firebase Firestore Active
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Urdu & English Instruction Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-1">
+              <span className="font-bold text-neutral-900 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center font-mono text-[10px]">1</span>
+                Supabase Project URL
+              </span>
+              <p className="text-neutral-500 pt-1">
+                Open your project on <strong>supabase.com</strong> &gt; Project Settings &gt; API &gt; Copy <strong>Project URL</strong>.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-1">
+              <span className="font-bold text-neutral-900 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center font-mono text-[10px]">2</span>
+                Supabase Anon Key
+              </span>
+              <p className="text-neutral-500 pt-1">
+                Under the same API page, copy the <strong>anon public key</strong> (starts with eyJ...).
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-1">
+              <span className="font-bold text-neutral-900 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-neutral-950 flex items-center justify-center font-mono text-[10px]">3</span>
+                Run SQL Schema Script
+              </span>
+              <p className="text-neutral-500 pt-1">
+                In Supabase, go to <strong>SQL Editor</strong>, paste our schema below, and click <strong>RUN</strong>.
+              </p>
+            </div>
+          </div>
+
+          {/* Credentials Form */}
+          <div className="space-y-4 max-w-2xl">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+              Supabase Project API Credentials
+            </h4>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                Supabase Project URL <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="https://xyzabcdefghijklmnop.supabase.co"
+                value={supabaseUrl}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              />
+              <p className="text-[10px] text-neutral-400 mt-1">Found in Supabase &gt; Project Settings &gt; API &gt; Configuration &gt; Project URL</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                Supabase Anon Key (Public) <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={2}
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                value={supabaseAnonKey}
+                onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 font-mono text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden resize-none"
+              />
+              <p className="text-[10px] text-neutral-400 mt-1">Found in Supabase &gt; Project Settings &gt; API &gt; Project API keys &gt; anon public</p>
+            </div>
+
+            {/* Test Feedback */}
+            {supabaseResult && (
+              <div className={`p-4 rounded-2xl text-xs space-y-1.5 ${supabaseResult.success ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+                <div className="flex items-center gap-2 font-bold">
+                  {supabaseResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-red-600" />}
+                  <span>{supabaseResult.success ? 'Supabase Connection Test Passed' : 'Connection Failed'}</span>
+                </div>
+                <p className="text-xs">{supabaseResult.message}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleTestSupabase}
+                disabled={testingSupabase}
+                className="px-4 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${testingSupabase ? 'animate-spin' : ''}`} />
+                <span>{testingSupabase ? 'Testing...' : 'Test Connection'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveSupabase}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save & Activate Supabase</span>
+              </button>
+
+              {supabaseActive && (
+                <button
+                  type="button"
+                  onClick={handleDisconnectSupabase}
+                  className="px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Disconnect (Use Firestore)
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* SQL Schema Script Section */}
+          <div className="pt-6 border-t border-neutral-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+                  Supabase SQL Database Tables Schema
+                </h4>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Creates products, orders, store_settings, reviews tables & Row Level Security (RLS) policies.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopySqlSchema}
+                  className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  {copiedSql ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Schema'}</span>
+                </button>
+
+                <a
+                  href="https://supabase.com/dashboard"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold flex items-center gap-1.5 border border-neutral-300 transition-colors"
+                >
+                  <span>Open Supabase</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* SQL Preview Box */}
+            <div className="relative rounded-2xl bg-neutral-900 text-neutral-200 p-4 font-mono text-[11px] max-h-56 overflow-y-auto border border-neutral-800 shadow-inner">
+              <pre className="whitespace-pre-wrap">{SUPABASE_SQL_SCHEMA}</pre>
+            </div>
+          </div>
+
+          {/* Sync Data to Supabase Button */}
+          <div className="pt-6 border-t border-neutral-200 p-5 rounded-2xl bg-amber-50/60 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h5 className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>Push Initial Catalog to Supabase</span>
+              </h5>
+              <p className="text-xs text-neutral-600 mt-1">
+                Uploads all 8 Abbottabad footwear products, store settings, and verified customer reviews directly into your Supabase database.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSyncToSupabase}
+              disabled={syncingSupabase || !supabaseUrl || !supabaseAnonKey}
+              className="px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-300 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer shrink-0"
+            >
+              <Database className={`w-3.5 h-3.5 text-amber-400 ${syncingSupabase ? 'animate-spin' : ''}`} />
+              <span>{syncingSupabase ? 'Pushing Data...' : 'Push Catalog to Supabase'}</span>
+            </button>
+          </div>
         </div>
       )}
 
