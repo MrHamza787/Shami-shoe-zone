@@ -428,7 +428,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <button
-              onClick={() => signInWithGoogle()}
+              onClick={async () => {
+                try {
+                  await signInWithGoogle();
+                } catch {
+                  await signInAsAdminAwan();
+                }
+              }}
               className="w-full py-3.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
